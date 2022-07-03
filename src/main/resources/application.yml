@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.jdbc.Driver
+    password: 12345678
+    url: jdbc:mysql://127.0.0.1/cim?useUnicode=true&characterEncoding=utf8&nullCatalogMeansCurrent=true&useSSL=false&useLegacyDatetimeCode=false&serverTimezone=UTC
+    username: root
+flowable:
+  #关闭定时任务JOB
+  async-executor-activate: false
