@@ -157,7 +157,8 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
         String ShortDirection = "空";
         String upBar = "location.abovebar";
         String downBar = "location.belowbar";
-        String res = "";
+        String res = "//@version=5\n" +
+                "indicator(\"input.bool\", overlay=true) \n";
         String longPicture = "shape.arrowup";
         String longColor = "#72e577";
         String shortPicture = "shape.arrowdown";
@@ -167,7 +168,7 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
         List<TbOrigin> tbCointList = tbOriginMapper.selectList(new
                 QueryWrapper<TbOrigin>().lambda().groupBy(TbOrigin::getCoin));
         for (TbOrigin tbCoinItem : tbCointList) {
-            String coinStr = "---" + tbCoinItem.getCoin() + "--- \n";
+            String coinStr = "//---" + tbCoinItem.getCoin() + "--- \n";
             List<TbOrigin> tbOriginNewList = tbOriginMapper.selectList(new
                     QueryWrapper<TbOrigin>()
                     .select("id, date,avg_price,direction,coin,SUM(tb_origin.transaction_amount) as transaction_amount,SUM(tb_origin.profit) as profit")
@@ -215,8 +216,8 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
 
 
 
-                coinStr += String.format("plotshape((time_close - timeframe.in_seconds()*1000) <= %s and time_close > %s,text = %s, style = %s,color = %s ,textcolor = %s ,location  = %s) \n"
-                        ,sdf.parse(item.getDate()).getTime(),sdf.parse(item.getDate()).getTime(),text,picture,color,color,location);
+                coinStr += String.format("plotshape((syminfo.tickerid == \"BINANCE:%sPERP\") and (time_close - timeframe.in_seconds()*1000) <= %s and time_close > %s,text = %s, style = %s,color = %s ,textcolor = %s ,location  = %s,display = display.pane) \n"
+                        ,item.getCoin(),sdf.parse(item.getDate()).getTime(),sdf.parse(item.getDate()).getTime(),text,picture,color,color,location);
 
 
             }
