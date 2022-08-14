@@ -33,6 +33,8 @@ public class TbOrigin implements Serializable {
 
     private Double profit;
 
+    private String requestId;
+
     public Long getId() {
         return id;
     }
@@ -40,6 +42,7 @@ public class TbOrigin implements Serializable {
     public void setId(Long id) {
         this.id = id;
     }
+
     public String getDate() {
         return date;
     }
@@ -47,6 +50,7 @@ public class TbOrigin implements Serializable {
     public void setDate(String date) {
         this.date = date;
     }
+
     public String getDirection() {
         return direction;
     }
@@ -54,6 +58,7 @@ public class TbOrigin implements Serializable {
     public void setDirection(String direction) {
         this.direction = direction;
     }
+
     public String getCoin() {
         return coin;
     }
@@ -61,6 +66,7 @@ public class TbOrigin implements Serializable {
     public void setCoin(String coin) {
         this.coin = coin;
     }
+
     public Double getTransactionAmount() {
         return transactionAmount;
     }
@@ -68,6 +74,7 @@ public class TbOrigin implements Serializable {
     public void setTransactionAmount(Double transactionAmount) {
         this.transactionAmount = transactionAmount;
     }
+
     public Double getAvgPrice() {
         return avgPrice;
     }
@@ -75,6 +82,7 @@ public class TbOrigin implements Serializable {
     public void setAvgPrice(Double avgPrice) {
         this.avgPrice = avgPrice;
     }
+
     public Double getProfit() {
         return profit;
     }
@@ -83,16 +91,31 @@ public class TbOrigin implements Serializable {
         this.profit = profit;
     }
 
+    /**
+     * @return String return the requestId
+     */
+    public String getRequestId() {
+        return requestId;
+    }
+
+    /**
+     * @param requestId the requestId to set
+     */
+    public void setRequestId(String requestId) {
+        this.requestId = requestId;
+    }
+
     @Override
     public String toString() {
         return "TbOrigin{" +
-            "id=" + id +
-            ", date=" + date +
-            ", direction=" + direction +
-            ", coin=" + coin +
-            ", transactionAmount=" + transactionAmount +
-            ", avgPrice=" + avgPrice +
-            ", profit=" + profit +
-        "}";
+                "id=" + id +
+                ", date=" + date +
+                ", direction=" + direction +
+                ", coin=" + coin +
+                ", transactionAmount=" + transactionAmount +
+                ", avgPrice=" + avgPrice +
+                ", profit=" + profit +
+                "}";
     }
+
 }
