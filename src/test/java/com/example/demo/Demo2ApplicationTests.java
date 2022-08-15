@@ -32,7 +32,7 @@ class Demo2ApplicationTests {
      void contextLoads() throws Exception {
      // 1、获取文件的路径
      // 1.1、从桌面获取文件
-     String filePath = "D:\\code\\java\\tradefile\\tradehistory\\78m.xls";
+     String filePath = "D:\\code\\java\\tradefile\\tradehistory\\re1.xls";
      // 1.2、从绝对路径获取文件
      // String filePath = "D:\\testexcel.xls";
 
@@ -185,7 +185,7 @@ class Demo2ApplicationTests {
         List<TbOrigin> tbCointList = tbOriginMapper.selectList(new
          QueryWrapper<TbOrigin>().lambda().groupBy(TbOrigin::getCoin));
          for (TbOrigin tbCoinItem : tbCointList) {
-             String coinStr = "//---" + tbCoinItem.getCoin() + "--- \n";
+             String coinStr = "";
              List<TbOrigin> tbOriginNewList = tbOriginMapper.selectList(new
              QueryWrapper<TbOrigin>()
              .select("id, date,avg_price,direction,coin,SUM(tb_origin.transaction_amount) as transaction_amount,SUM(tb_origin.profit) as profit")
@@ -194,40 +194,41 @@ class Demo2ApplicationTests {
              for (TbOrigin item : tbOriginNewList) {
                  Boolean isOpen = false;
                  direction = "";
-                 String location = "";
+//                 String location = "";
                  String text ="";
-                 String picture = "";
-                 String color = "";
+//                 String picture = "";
+//                 String color = "";
+                 String operate = "";
                  SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                  sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
                  isOpen = item.getProfit() == 0?true:false;
-                 direction = item.getDirection().equals("BUY")?"long":"short";
-                 //根据操作方向设置图标
-                 if (direction.equals("long")){
-                     picture = longPicture;
-                     color = longColor;
-                 } else {
-                     picture = shortPicture;
-                     color = shortColor;
-                 }
+                 direction = item.getDirection().equals("BUY") || item.getDirection().equals("买入")?"long":"short";
+//                 //根据操作方向设置图标
+//                 if (direction.equals("long")){
+//                     picture = longPicture;
+//                     color = longColor;
+//                 } else {
+//                     picture = shortPicture;
+//                     color = shortColor;
+//                 }
 
 
                  //设置开单or平单
                  if (isOpen) {
                      if (direction.equals("long")) {
-                         text = String.format("\"开%s \\n price : %s \\n amout : %s \"", LongDirection, item.getAvgPrice(), item.getTransactionAmount());
-                         location = downBar;
+                         text = String.format("开%s  price : %s  amout : %s ", LongDirection, item.getAvgPrice(), item.getTransactionAmount());
+//                         location = downBar;
                      } else {
-                         text = String.format("\"开%s \\n price : %s \\n amout : %s \"", ShortDirection, item.getAvgPrice(), item.getTransactionAmount());
-                         location = upBar;
+                         text = String.format("开%s  price : %s  amout : %s ", ShortDirection, item.getAvgPrice(), item.getTransactionAmount());
+//                         location = upBar;
                      }
                  } else {
                      if  (direction.equals("long")) {
-                         text = String.format("\"平%s \\n price : %s \\n amout : %s\\n profit : %s \"", ShortDirection ,item.getAvgPrice(),item.getTransactionAmount(),item.getProfit());
-                         location = downBar;
+                         text = String.format("平%s  price : %s  amout : %s profit : %s ", ShortDirection ,item.getAvgPrice(),item.getTransactionAmount(),item.getProfit());
+//                         location = downBar;
                      } else {
-                         text = String.format("\"平%s \\n price : %s \\n amout : %s\\n profit : %s \"", LongDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
-                         location = upBar;
+                         text = String.format("平%s  price : %s  amout : %s profit : %s ", LongDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
+//                         location = upBar;
                      }
                  }
 
@@ -239,7 +240,7 @@ class Demo2ApplicationTests {
 //                 coinStr += String.format("label.new(trade_time,0,xloc=xloc.bar_time, yloc = %s,color = %s,size= size.tiny ,style = %s,tooltip  = trade_info) \n"
 //                         ,item.getCoin(),sdf.parse(item.getDate()).getTime(),sdf.parse(item.getDate()).getTime(),text,picture,color,color,location);
 
-                 coinStr += String.format("BINANCE:%sPERP-%s-%s-%s,",item.getCoin(),sdf.parse(item.getDate()).getTime(),text,direction);
+                 coinStr += String.format("BINANCE:%sPERP_%s_%s_%s_%s,",item.getCoin(),sdf.parse(item.getDate()).getTime(),text,direction,isOpen);
 
              }
              res += coinStr;
@@ -268,7 +269,7 @@ class Demo2ApplicationTests {
           List<TbOrigin> tbCointList = tbOriginMapper.selectList(new
                   QueryWrapper<TbOrigin>().lambda().groupBy(TbOrigin::getCoin));
           for (TbOrigin tbCoinItem : tbCointList) {
-               String coinStr = "---" + tbCoinItem.getCoin() + "--- \n";
+               String coinStr = "";
                List<TbOrigin> tbOriginNewList = tbOriginMapper.selectList(new
                        QueryWrapper<TbOrigin>()
                        .select("id, date,avg_price,direction,coin,SUM(tb_origin.transaction_amount) as transaction_amount,SUM(tb_origin.profit) as profit")
@@ -298,29 +299,29 @@ class Demo2ApplicationTests {
                     //设置开单or平单
                     if (isOpen) {
                          if (isLongDirection) {
-                              text = String.format("\"开%s \\n price : %s \\n amout : %s \"", LongDirection, item.getAvgPrice(), item.getTransactionAmount());
+                              text = String.format("开%s  price : %s  amout : %s ", LongDirection, item.getAvgPrice(), item.getTransactionAmount());
                               location = downBar;
                          } else {
-                              text = String.format("\"开%s \\n price : %s \\n amout : %s \"", ShortDirection, item.getAvgPrice(), item.getTransactionAmount());
+                              text = String.format("开%s  price : %s  amout : %s ", ShortDirection, item.getAvgPrice(), item.getTransactionAmount());
                               location = upBar;
                          }
                     } else {
                          if  (isLongDirection) {
-                              text = String.format("\"平%s \\n price : %s \\n amout : %s\\n profit : %s \"", ShortDirection ,item.getAvgPrice(),item.getTransactionAmount(),item.getProfit());
+                              text = String.format("平%s price : %s  amout : %s profit : %s ", ShortDirection ,item.getAvgPrice(),item.getTransactionAmount(),item.getProfit());
                               location = downBar;
                          } else {
-                              text = String.format("\"平%s \\n price : %s \\n amout : %s\\n profit : %s \"", LongDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
+                              text = String.format("平%s  price : %s  amout : %s profit : %s ", LongDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
                               location = upBar;
                          }
                     }
 
+                   coinStr += String.format("BINANCE:%sPERP-%s-%s-%s,",item.getCoin(),sdf.parse(item.getDate()).getTime(),text,direction);
 
-
-                    coinStr += String.format("plotshape((time_close - timeframe.in_seconds()*1000) <= %s and time_close > %s,text = %s, style = %s,color = %s ,textcolor = %s ,location  = %s) \n"
-                            ,sdf.parse(item.getDate()).getTime(),sdf.parse(item.getDate()).getTime(),text,picture,color,color,location);
-
-                    coinStr += String.format("plotshape(trade_time <= %s and time_close > %s,text = %s, style = %s,color = %s ,textcolor = %s ,location  = %s) \n"
-                            ,sdf.parse(item.getDate()).getTime(),sdf.parse(item.getDate()).getTime(),text,picture,color,color,location);
+//                    coinStr += String.format("plotshape((time_close - timeframe.in_seconds()*1000) <= %s and time_close > %s,text = %s, style = %s,color = %s ,textcolor = %s ,location  = %s) \n"
+//                            ,sdf.parse(item.getDate()).getTime(),sdf.parse(item.getDate()).getTime(),text,picture,color,color,location);
+//
+//                    coinStr += String.format("plotshape(trade_time <= %s and time_close > %s,text = %s, style = %s,color = %s ,textcolor = %s ,location  = %s) \n"
+//                            ,sdf.parse(item.getDate()).getTime(),sdf.parse(item.getDate()).getTime(),text,picture,color,color,location);
 
                }
                res += coinStr;
