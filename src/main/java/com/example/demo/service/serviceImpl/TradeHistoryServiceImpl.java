@@ -184,7 +184,7 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                 sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
                 isOpen = item.getProfit() == 0?true:false;
-                isLongDirection = item.getDirection().equals("BUY")?true:false;
+                isLongDirection = item.getDirection().equals("买入") || item.getDirection().equals("BUY")?true:false;
                 //根据操作方向设置图标
                 if (isLongDirection){
                     picture = longPicture;
