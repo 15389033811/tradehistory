@@ -21,10 +21,16 @@ async function onSubmit() {
         method: 'POST',
         mode: 'cors', 
         body: formData,
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded"
-        }
     })
+    const data = await res.json();
     let resText = document.querySelector('.text-box');
-    resText.innerHTML = res;
+    resText.innerHTML = data.result;
+}
+
+function handleCopy() {
+    const divText = document.querySelector('.text-box').innerText;
+    const textarea = document.querySelector('#input');
+    textarea.textContent = divText;
+    textarea.select();
+	document.execCommand('copy');
 }
