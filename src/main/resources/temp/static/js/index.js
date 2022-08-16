@@ -16,8 +16,8 @@ async function onSubmit() {
     let upload = document.getElementById('upload');
     let file = upload.files[0];
     let formData = new FormData();
-    formData.append('uploadFile', file);
-    const res = await fetch('/upload', {
+    formData.append('file', file);
+    const res = await fetch('http://127.0.0.1:8080/api/upload', {
         method: 'POST',
         mode: 'cors', 
         body: formData,
@@ -28,9 +28,11 @@ async function onSubmit() {
 }
 
 function handleCopy() {
-    const divText = document.querySelector('.text-box').innerText;
+    const divText = document.querySelector('.text-box').innerHTML;
+    console.log(divText)
     const textarea = document.querySelector('#input');
     textarea.textContent = divText;
     textarea.select();
 	document.execCommand('copy');
+	console.log("dasadsadsads")
 }

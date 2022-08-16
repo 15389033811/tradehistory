@@ -270,7 +270,9 @@ input {
   .copy-text {
     width: 200px;
   }
-  
+   #input {
+       opacity: 0.01;
+   }
   @keyframes animated-border {
     0% {
       box-shadow: 0 0 0 0 rgba(255,255,255,0.4);
