@@ -2,6 +2,7 @@ package com.example.demo.service.serviceImpl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.example.demo.common.Result;
 import com.example.demo.dao.TbOriginMapper;
 import com.example.demo.entity.TbOrigin;
 import com.example.demo.service.TradeHistoryService;
@@ -15,12 +16,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 import java.util.TimeZone;
+import java.util.logging.Logger;
 
 @Service
 public class TradeHistoryServiceImpl implements TradeHistoryService {
@@ -29,7 +32,11 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
     TbOriginMapper tbOriginMapper;
 
     @Transactional
-    public byte[] insertFileInfo(InputStream inputStream, String requestId) throws Exception {
+    public Result<String> insertFileInfo(InputStream inputStream, String requestId) throws Exception {
+
+        try {
+
+
         // 1、获取文件的路径
         // 1.1、从桌面获取文件
         // 1.2、从绝对路径获取文件
@@ -47,7 +54,6 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
 
         // 4、从工作表中获取行数，并遍历
         int lastRowIndex = sheet.getLastRowNum();
-        System.out.println("总行数为：" + lastRowIndex);
         ArrayList<HashMap> list = new ArrayList<>();
         for (int i = 1; i <= lastRowIndex; i++) {
             // 4.1 获取每行的数据
@@ -98,9 +104,18 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
             tbOriginMapper.insert(tbOrigin);
 
         }
+        Result<String> dataRes = getNewData3(requestId);
 
-        return getNewData2(requestId);
-
+        if (dataRes.getCode() == -1 ){
+            System.out.println("解析数据异常："+dataRes.getMessage());
+            return Result.failWithMsg(dataRes.getMessage());
+        }
+        return dataRes;
+        } catch (Exception e ){
+            e.printStackTrace();
+            System.out.println("转换文件中数据异常: "+e.toString());
+            return Result.failWithMsg("转换文件中数据异常");
+        }
     }
 
     public byte[] getNewData(String requestId) throws Exception {
@@ -228,6 +243,70 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
         tbOriginMapper.delete(new LambdaQueryWrapper<TbOrigin>().eq(TbOrigin::getRequestId, requestId));
         return res.getBytes();
     }
+
+    public Result<String> getNewData3(String requestId) throws Exception {
+        String LongDirection = "多";
+        String ShortDirection = "空";
+        String res = "";
+        String direction = "";
+        StringBuilder stringBuilder = new StringBuilder();
+
+        try {
+
+
+        List<TbOrigin> tbCointList = tbOriginMapper.selectList(new
+                QueryWrapper<TbOrigin>().lambda().groupBy(TbOrigin::getCoin));
+        for (TbOrigin tbCoinItem : tbCointList) {
+            String coinStr = "";
+            List<TbOrigin> tbOriginNewList = tbOriginMapper.selectList(new
+                    QueryWrapper<TbOrigin>()
+                    .select("id, date,avg_price,direction,coin,SUM(tb_origin.transaction_amount) as transaction_amount,SUM(tb_origin.profit) as profit")
+                    .eq("coin", tbCoinItem.getCoin()).groupBy("date,direction"));
+            // 对每一笔操作生成字符串
+            for (TbOrigin item : tbOriginNewList) {
+                Boolean isOpen = false;
+                String text = "";
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                isOpen = item.getProfit() == 0 ? true : false;
+                direction = item.getDirection().equals("BUY") || item.getDirection().equals("买入") ? "long" : "short";
+
+                //设置开单or平单
+                if (isOpen) {
+                    if (direction.equals("long")) {
+                        text = String.format("开%s  price : %s  amout : %s ", LongDirection, item.getAvgPrice(), item.getTransactionAmount());
+                    } else {
+                        text = String.format("开%s  price : %s  amout : %s ", ShortDirection, item.getAvgPrice(), item.getTransactionAmount());
+                    }
+                } else {
+                    if (direction.equals("long")) {
+                        text = String.format("平%s  price : %s  amout : %s profit : %s ", ShortDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
+                    } else {
+                        text = String.format("平%s  price : %s  amout : %s profit : %s ", LongDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
+                    }
+                }
+                coinStr += String.format("BINANCE:%sPERP_%s_%s_%s_%s,\n", item.getCoin(), sdf.parse(item.getDate()).getTime(), text, direction, isOpen);
+
+            }
+            res += coinStr;
+
+        }
+        int delete_char_index = res.lastIndexOf(",");
+        if (delete_char_index != -1) {
+            stringBuilder = new StringBuilder(res);
+            stringBuilder = stringBuilder.deleteCharAt(delete_char_index);
+            res = stringBuilder.toString();
+
+        }
+        System.out.println(res);
+        return  Result.ok(res);
+        } catch ( Exception e ){
+            System.out.println("解析数据发生异常");
+            e.printStackTrace();
+            return Result.failWithMsg(e.toString());
+        }
+    }
+
 
     public static String createRandomStr1(int length) {
         String str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
