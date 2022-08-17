@@ -3,18 +3,24 @@ package com.example.demo.service.serviceImpl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.demo.common.Result;
+import com.example.demo.common.xslutil.ExeclUtil;
 import com.example.demo.dao.TbOriginMapper;
 import com.example.demo.entity.TbOrigin;
+import com.example.demo.enums.DirectionEnum;
+import com.example.demo.enums.MarketEnum;
 import com.example.demo.service.TradeHistoryService;
 
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -23,7 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 import java.util.TimeZone;
-import java.util.logging.Logger;
 
 @Service
 public class TradeHistoryServiceImpl implements TradeHistoryService {
@@ -31,91 +36,173 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
     @Autowired
     TbOriginMapper tbOriginMapper;
 
+    @Autowired
+    ExeclUtil execlUtil;
+
+    private static final Logger logger = LoggerFactory.getLogger(TradeHistoryServiceImpl.class);
+
     @Transactional
-    public Result<String> insertFileInfo(InputStream inputStream, String requestId) throws Exception {
+    public Result<String> insertFileInfo(InputStream inputStream, String requestId, String market, String fileName) throws Exception {
 
         try {
 
-
-        // 1、获取文件的路径
-        // 1.1、从桌面获取文件
-        // 1.2、从绝对路径获取文件
-        // String filePath = "D:\\testexcel.xls";
-
-        // 2、通过流获取本地文件
-        // FileInputStream fileInputStream = new FileInputStream(filePath);
-        // BufferedInputStream bufferedInputStream = new
-        // BufferedInputStream(inputStream);
-        // POIFSFileSystem fileSystem = new POIFSFileSystem(bufferedInputStream);
-        Workbook workbook = WorkbookFactory.create(inputStream);
-        // 3、创建工作簿对象，并获取工作表1
-        // HSSFWorkbook workbook = new XSSFWorkbook(fileSystem);
-        Sheet sheet = workbook.getSheet("Sheet1");
-
-        // 4、从工作表中获取行数，并遍历
-        int lastRowIndex = sheet.getLastRowNum();
-        ArrayList<HashMap> list = new ArrayList<>();
-        for (int i = 1; i <= lastRowIndex; i++) {
-            // 4.1 获取每行的数据
-            Row row = sheet.getRow(i);
-            if (row == null) {
-                break;
+            switch (market) {
+                case "BINANCE":
+                    System.out.println(fileName);
+                    if (!fileName.endsWith("xls") && !fileName.endsWith("xlsx")){
+                        return Result.failWithMsg("币安交易所请上传后缀为xls、xlsx的文件");
+                    }
+                    insertBinanceData(inputStream,requestId);
+                    break;
+                case "OKX":
+                    if (!fileName.endsWith("csv")){
+                        return Result.failWithMsg("欧意交易所请上传后缀为csv的文件");
+                    }
+                    insertOkxData(inputStream,requestId);
+                    break;
+                default:
+                    return Result.failWithMsg("敬请等待支持更多交易所");
             }
+            Result<String> dataRes = getTradeDataStr(requestId,market);
 
-            // 5、从每一列中获取参数
-            short lastCellNum = row.getLastCellNum();
-            TbOrigin tbOrigin = new TbOrigin();
-            tbOrigin.setRequestId(requestId);
-            for (int j = 0; j < lastCellNum; j++) {
-                // 设置返回值的类型
-                // 获取每列的数据
-
-                switch (j) {
-                    case 0:
-                        // row.getCell(j).set
-                        tbOrigin.setDate(row.getCell(j).getStringCellValue());
-                        break;
-                    case 1:
-                        // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
-                        tbOrigin.setCoin(row.getCell(j).getStringCellValue());
-                        break;
-                    case 2:
-                        // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
-                        tbOrigin.setDirection(row.getCell(j).getStringCellValue());
-                        break;
-                    case 3:
-                        // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
-                        tbOrigin.setAvgPrice(Double.valueOf(row.getCell(j).getStringCellValue()));
-                        break;
-                    case 5:
-                        // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
-                        System.out.println(Double.valueOf(row.getCell(j).getStringCellValue()));
-                        tbOrigin.setTransactionAmount(Double.valueOf(row.getCell(j).getStringCellValue()));
-                        break;
-                    case 8:
-                        // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
-                        tbOrigin.setProfit(Double.valueOf(row.getCell(j).getStringCellValue()));
-                        break;
-                    default:
-                        break;
-                }
+            if (dataRes.getCode() == -1 ){
+                logger.error("解析数据异常",dataRes.getMessage());
+                return Result.failWithMsg(dataRes.getMessage());
             }
-
-            tbOriginMapper.insert(tbOrigin);
-
-        }
-        Result<String> dataRes = getNewData3(requestId);
-
-        if (dataRes.getCode() == -1 ){
-            System.out.println("解析数据异常："+dataRes.getMessage());
-            return Result.failWithMsg(dataRes.getMessage());
-        }
-        return dataRes;
+            return dataRes;
         } catch (Exception e ){
             e.printStackTrace();
-            System.out.println("转换文件中数据异常: "+e.toString());
-            return Result.failWithMsg("转换文件中数据异常");
+            logger.error("计算交易数据异常",e);
+            return Result.failWithMsg("计算交易数据异常，请查看教程，确认文件是否合规");
         }
+    }
+
+
+    public void insertOkxData(InputStream inputStream, String requestId) throws IOException {
+            InputStream xlsInputStream = execlUtil.getWorkbookByCsv(inputStream);
+            Workbook workbook = WorkbookFactory.create(xlsInputStream);
+            // 3、创建工作簿对象，并获取工作表1
+            // HSSFWorkbook workbook = new XSSFWorkbook(fileSystem);
+            Sheet sheet = workbook.getSheet("Sheet1");
+            System.out.println("adsgdasgadsgdasg");
+            int lastRowIndex = sheet.getLastRowNum();
+            for (int i = 1; i <= lastRowIndex; i++) {
+                // 4.1 获取每行的数据
+                Row row = sheet.getRow(i);
+                if (row == null) {
+                    break;
+                }
+
+                // 5、从每一列中获取参数
+                short lastCellNum = row.getLastCellNum();
+                TbOrigin tbOrigin = new TbOrigin();
+                tbOrigin.setRequestId(requestId);
+                for (int j = 0; j < lastCellNum; j++) {
+                    String tradeStatus = row.getCell(14).getStringCellValue();
+                    if (!tradeStatus.equals("COMPLUTE") && !tradeStatus.equals("完全成交")) {
+                        continue;
+                    }
+                    switch (j) {
+                        case 1:
+                            // row.getCell(j).set
+                            tbOrigin.setDate(row.getCell(j).getStringCellValue());
+                            break;
+                        case 3:
+                            // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
+
+                            String originStr = row.getCell(j).getStringCellValue();
+                            String[] originArr = originStr.split("-");
+                            String resStr = originArr[0] + originArr[1];
+                            tbOrigin.setCoin(resStr);
+                            break;
+                        case 5:
+                            // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
+                            String originDirStr = row.getCell(j).getStringCellValue();
+                            String directionStr = "";
+                            if (originDirStr.equals("买入") || originDirStr.equals("Buy")) {
+                                directionStr = DirectionEnum.BUY.getDireciont();
+                            } else if (originDirStr.equals("卖") || originDirStr.equals("Sell")) {
+                                directionStr = DirectionEnum.SELL.getDireciont();
+                            }
+                            tbOrigin.setDirection(directionStr);
+                            break;
+                        case 11:
+                            // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
+                            tbOrigin.setAvgPrice(Double.valueOf(row.getCell(j).getStringCellValue()));
+                            break;
+                        case 8:
+                            // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
+                            tbOrigin.setTransactionAmount(
+                                    Double.valueOf(row.getCell(11).getStringCellValue())
+                                            * Double.valueOf(row.getCell(j).getStringCellValue()));
+                            break;
+                        case 12:
+                            // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
+                            tbOrigin.setProfit(Double.valueOf(row.getCell(j).getStringCellValue()));
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+                tbOriginMapper.insert(tbOrigin);
+            }
+    }
+
+    public void insertBinanceData(InputStream inputStream, String requestId) throws IOException {
+            Workbook workbook = WorkbookFactory.create(inputStream);
+            // 3、创建工作簿对象，并获取工作表1
+            // HSSFWorkbook workbook = new XSSFWorkbook(fileSystem);
+            Sheet sheet = workbook.getSheet("Sheet1");
+
+            // 4、从工作表中获取行数，并遍历
+            int lastRowIndex = sheet.getLastRowNum();
+            for (int i = 1; i <= lastRowIndex; i++) {
+                // 4.1 获取每行的数据
+                Row row = sheet.getRow(i);
+                if (row == null) {
+                    break;
+                }
+
+                // 5、从每一列中获取参数
+                short lastCellNum = row.getLastCellNum();
+                TbOrigin tbOrigin = new TbOrigin();
+                tbOrigin.setRequestId(requestId);
+                for (int j = 0; j < lastCellNum; j++) {
+                    // 设置返回值的类型
+                    // 获取每列的数据
+                    switch (j) {
+                        case 0:
+                            // row.getCell(j).set
+                            tbOrigin.setDate(row.getCell(j).getStringCellValue());
+                            break;
+                        case 1:
+                            // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
+                            tbOrigin.setCoin(row.getCell(j).getStringCellValue());
+                            break;
+                        case 2:
+                            // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
+                            tbOrigin.setDirection(row.getCell(j).getStringCellValue());
+                            break;
+                        case 3:
+                            // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
+                            tbOrigin.setAvgPrice(Double.valueOf(row.getCell(j).getStringCellValue()));
+                            break;
+                        case 5:
+                            // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
+                            tbOrigin.setTransactionAmount(Double.valueOf(row.getCell(j).getStringCellValue()));
+                            break;
+                        case 8:
+                            // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
+                            tbOrigin.setProfit(Double.valueOf(row.getCell(j).getStringCellValue()));
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+                tbOriginMapper.insert(tbOrigin);
+            }
     }
 
     public byte[] getNewData(String requestId) throws Exception {
@@ -244,7 +331,7 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
         return res.getBytes();
     }
 
-    public Result<String> getNewData3(String requestId) throws Exception {
+    public Result<String> getTradeDataStr(String requestId,String market) throws Exception {
         String LongDirection = "多";
         String ShortDirection = "空";
         String res = "";
@@ -285,7 +372,7 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
                         text = String.format("平%s  price : %s  amout : %s profit : %s ", LongDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
                     }
                 }
-                coinStr += String.format("BINANCE:%sPERP_%s_%s_%s_%s,\n", item.getCoin(), sdf.parse(item.getDate()).getTime(), text, direction, isOpen);
+                coinStr += String.format("%s:%sPERP_%s_%s_%s_%s,\n", market,item.getCoin(), sdf.parse(item.getDate()).getTime(), text, direction, isOpen);
 
             }
             res += coinStr;
@@ -299,9 +386,10 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
 
         }
         System.out.println(res);
+        tbOriginMapper.delete(new LambdaQueryWrapper<TbOrigin>().eq(TbOrigin::getRequestId, requestId));
         return  Result.ok(res);
         } catch ( Exception e ){
-            System.out.println("解析数据发生异常");
+            logger.error("解析数据发生异常",e);
             e.printStackTrace();
             return Result.failWithMsg(e.toString());
         }
