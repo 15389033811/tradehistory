@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.csvreader.CsvReader;
 import com.example.demo.dao.TbOriginMapper;
 import com.example.demo.entity.TbOrigin;
+import org.apache.poi.ss.formula.functions.T;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.poi.hssf.usermodel.HSSFRow;
@@ -18,6 +19,7 @@ import org.apache.poi.xssf.streaming.SXSSFRow;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -29,6 +31,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @SpringBootTest
 class Demo2ApplicationTests {
@@ -57,7 +60,7 @@ class Demo2ApplicationTests {
         String filePath = "D:\\code\\java\\tradefile\\tradehistory\\re1.xls";
         // 1.2、从绝对路径获取文件
         // String filePath = "D:\\testexcel.xls";
-
+        ArrayList<TbOrigin> baseInfoList =new ArrayList( );
         // 2、通过流获取本地文件
         FileInputStream fileInputStream = new FileInputStream(filePath);
         BufferedInputStream bufferedInputStream = new
@@ -119,12 +122,111 @@ class Demo2ApplicationTests {
             }
 
             tbOriginMapper.insert(tbOrigin);
-
+            baseInfoList.add(tbOrigin);
         }
+
+
+        Map<String,List<TbOrigin>> groupByMap = baseInfoList
+                .stream()
+                .collect(Collectors
+                        .groupingBy(item -> item.getDirection() + "_" +item.getCoin() + "_" +item.getDate()));
+
+        List<TbOrigin> resTbOriginTemp = new ArrayList<>();
+        groupByMap.forEach((originKey,originVal) ->{
+            TbOrigin tbOriginTemp = new TbOrigin();
+            BeanUtils.copyProperties(originVal.get(0),tbOriginTemp);
+            originVal.forEach((tbOriginItem) -> {
+                tbOriginTemp.setProfit(tbOriginTemp.getProfit() + tbOriginItem.getProfit());
+                tbOriginTemp.setTransactionAmount(tbOriginTemp.getTransactionAmount()+tbOriginItem.getTransactionAmount());
+            });
+            resTbOriginTemp.add(tbOriginTemp);
+        });
+
+        getNewData4(resTbOriginTemp);
+
         // 6、关闭资源、输出封装数据
         bufferedInputStream.close();
 
     }
+
+
+    @Test
+    void getNewData4(List<TbOrigin> tbOriginNewList) throws Exception {
+        String LongDirection = "多";
+        String ShortDirection = "空";
+        String upBar = "location.abovebar";
+        String downBar = "location.belowbar";
+        String res = "";
+        String longPicture = "shape.arrowup";
+        String longColor = "#ff5252";
+        String shortPicture = "shape.arrowdown";
+        String shortColor = "#72e577";
+        String textColor = "";
+        String direction = "";
+        StringBuilder stringBuilder = new StringBuilder();
+
+            // 对每一笔操作生成字符串
+            for (TbOrigin item : tbOriginNewList) {
+                Boolean isOpen = false;
+                Boolean isLongDirection = false;
+                String location = "";
+                String text = "";
+                String picture = "";
+                String color = "";
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                isOpen = item.getProfit() == 0 ? true : false;
+                isLongDirection = item.getDirection().equals("BUY") ? true : false;
+                //根据操作方向设置图标
+                if (isLongDirection) {
+                    picture = longPicture;
+                    color = longColor;
+                } else {
+                    picture = shortPicture;
+                    color = shortColor;
+                }
+
+
+                //设置开单or平单
+                if (isOpen) {
+                    if (isLongDirection) {
+                        text = String.format("开%s  price : %s  amout : %s ", LongDirection, item.getAvgPrice(), item.getTransactionAmount());
+                        location = downBar;
+                    } else {
+                        text = String.format("开%s  price : %s  amout : %s ", ShortDirection, item.getAvgPrice(), item.getTransactionAmount());
+                        location = upBar;
+                    }
+                } else {
+                    if (isLongDirection) {
+                        text = String.format("平%s price : %s  amout : %s profit : %s ", ShortDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
+                        location = downBar;
+                    } else {
+                        text = String.format("平%s  price : %s  amout : %s profit : %s ", LongDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
+                        location = upBar;
+                    }
+                }
+
+                res += String.format("BINANCE:%sPERP_%s_%s_%s_%s,", item.getCoin(), sdf.parse(item.getDate()).getTime(), text, direction, isOpen);
+
+//                    coinStr += String.format("plotshape((time_close - timeframe.in_seconds()*1000) <= %s and time_close > %s,text = %s, style = %s,color = %s ,textcolor = %s ,location  = %s) \n"
+//                            ,sdf.parse(item.getDate()).getTime(),sdf.parse(item.getDate()).getTime(),text,picture,color,color,location);
+//
+//                    coinStr += String.format("plotshape(trade_time <= %s and time_close > %s,text = %s, style = %s,color = %s ,textcolor = %s ,location  = %s) \n"
+//                            ,sdf.parse(item.getDate()).getTime(),sdf.parse(item.getDate()).getTime(),text,picture,color,color,location);
+
+            }
+
+            int delete_char_index = res.lastIndexOf(",");
+            if (delete_char_index != -1) {
+                stringBuilder = new StringBuilder(res);
+                stringBuilder = stringBuilder.deleteCharAt(delete_char_index);
+                res = stringBuilder.toString();
+            }
+
+
+        System.out.println(res);
+    }
+
 
     //
     @Test

@@ -8,6 +8,8 @@ public interface TradeHistoryService {
 
     public Result<String> insertFileInfo(InputStream inputStream, String requestId,String market,String fileName) throws Exception;
 
+    public Result<String> insertFileInfoByMap(InputStream inputStream, String requestId, String market, String fileName) throws  Exception;
+
     public byte[] getNewData(String requestId) throws Exception;
 
     public byte[] getNewData2(String requestId) throws Exception;

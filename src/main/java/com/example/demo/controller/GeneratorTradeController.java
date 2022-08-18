@@ -41,7 +41,7 @@ public class GeneratorTradeController {
 
         InputStream fileInputStream = file.getInputStream();
         String fileName = file.getOriginalFilename();
-        Result<String> result = tradeHistoryService.insertFileInfo(fileInputStream, requestId,market,fileName);;
+        Result<String> result = tradeHistoryService.insertFileInfoByMap(fileInputStream, requestId,market,fileName);;
 
         // 将文件写入输入流
         // FileInputStream fileInputStream = new FileInputStream(file);
