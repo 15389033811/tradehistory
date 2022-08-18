@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trander History</title>
-    <link rel="stylesheet" type="text/css" href="../static/css/style.css">
+    <link rel="stylesheet" type="text/css" href="./style.css">
 </head>
 <body>
     <div class="container">
@@ -15,6 +15,13 @@
 
         <div class="left-layout">
             <h1>Trader History</h1>
+            <div class="select">
+                <select id="market-select">
+                  <option value="" disabled selected style="display: none;">Choose Your Market</option>
+                  <option value="BINANCE">BINANCE</option>
+                  <option value="OKX">OKX</option>
+                </select>
+            </div>
             
             <!-- 上传文件 -->
             <div class="upload-container">
@@ -35,11 +42,11 @@
         </div>
         <div class="right-layout">
             <div class="text-box"></div>
-            <textarea id="input" ></textarea>
+            <textarea id="input" style="display: none;"></textarea>
             <button class="button-item copy-text" onclick="handleCopy()"><span>Copy to clipboard</span></button>
         </div>
     </div>
 </body>
 </html>
 
-<script type="text/javascript" src="../static/js/index.js"></script>
+<script type="text/javascript" src="./index.js"></script>

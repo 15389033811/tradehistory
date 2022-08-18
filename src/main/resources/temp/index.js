@@ -7,17 +7,25 @@ function getFile(value){
     var file = upload.files[0];
     // 将文件名载入文本框
     textBox.innerHTML = file.name;
-
-    console.log(file);
-    console.log(file.name);
 }
 
+
 async function onSubmit() {
+    // 下拉框逻辑
+    let myselect=document.getElementById("market-select");
+    let index=myselect.selectedIndex;
+    if (!index) {
+        alert('请先选择交易所')
+        return
+    }
+    const selected = myselect.options[index].value;
+
     let upload = document.getElementById('upload');
     let file = upload.files[0];
     let formData = new FormData();
     formData.append('file', file);
-    const res = await fetch('http://127.0.0.1:8080/api/upload', {
+    formData.append('market',selected)
+    const res = await fetch('http://www.traderhistory.top/api/upload', {
         method: 'POST',
         mode: 'cors', 
         body: formData,
@@ -28,11 +36,9 @@ async function onSubmit() {
 }
 
 function handleCopy() {
-    const divText = document.querySelector('.text-box').innerHTML;
-    console.log(divText)
+    const divText = document.querySelector('.text-box').innerText;
     const textarea = document.querySelector('#input');
     textarea.textContent = divText;
     textarea.select();
 	document.execCommand('copy');
-	console.log("dasadsadsads")
 }
