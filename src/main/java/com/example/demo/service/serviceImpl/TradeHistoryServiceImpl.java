@@ -17,12 +17,15 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,7 +51,6 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
 
             switch (market) {
                 case "BINANCE":
-                    System.out.println(fileName);
                     if (!fileName.endsWith("xls") && !fileName.endsWith("xlsx")){
                         return Result.failWithMsg("币安交易所请上传后缀为xls、xlsx的文件");
                     }
@@ -78,13 +80,12 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
     }
 
 
-    public void insertOkxData(InputStream inputStream, String requestId) throws IOException {
+    public void insertOkxData(InputStream inputStream, String requestId) throws IOException, ParseException {
             InputStream xlsInputStream = execlUtil.getWorkbookByCsv(inputStream);
             Workbook workbook = WorkbookFactory.create(xlsInputStream);
             // 3、创建工作簿对象，并获取工作表1
             // HSSFWorkbook workbook = new XSSFWorkbook(fileSystem);
             Sheet sheet = workbook.getSheet("Sheet1");
-            System.out.println("adsgdasgadsgdasg");
             int lastRowIndex = sheet.getLastRowNum();
             for (int i = 1; i <= lastRowIndex; i++) {
                 // 4.1 获取每行的数据
@@ -99,13 +100,16 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
                 tbOrigin.setRequestId(requestId);
                 for (int j = 0; j < lastCellNum; j++) {
                     String tradeStatus = row.getCell(14).getStringCellValue();
-                    if (!tradeStatus.equals("COMPLUTE") && !tradeStatus.equals("完全成交")) {
+                    if (!tradeStatus.equals("COMPLETE") && !tradeStatus.equals("完全成交")) {
                         continue;
                     }
                     switch (j) {
                         case 1:
                             // row.getCell(j).set
-                            tbOrigin.setDate(row.getCell(j).getStringCellValue());
+                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                            sdf.setTimeZone(TimeZone.getTimeZone("Asia/Shanghai"));
+                            tbOrigin.setDate(Long.toString(sdf.parse(row.getCell(j).getStringCellValue()).getTime()));
+                            //tbOrigin.setDate(row.getCell(j).getStringCellValue());
                             break;
                         case 3:
                             // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
@@ -149,7 +153,7 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
             }
     }
 
-    public void insertBinanceData(InputStream inputStream, String requestId) throws IOException {
+    public void insertBinanceData(InputStream inputStream, String requestId) throws IOException, ParseException {
             Workbook workbook = WorkbookFactory.create(inputStream);
             // 3、创建工作簿对象，并获取工作表1
             // HSSFWorkbook workbook = new XSSFWorkbook(fileSystem);
@@ -174,7 +178,9 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
                     switch (j) {
                         case 0:
                             // row.getCell(j).set
-                            tbOrigin.setDate(row.getCell(j).getStringCellValue());
+                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                            sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                            tbOrigin.setDate(Long.toString(sdf.parse(row.getCell(j).getStringCellValue()).getTime()));
                             break;
                         case 1:
                             // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
@@ -353,8 +359,8 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
             for (TbOrigin item : tbOriginNewList) {
                 Boolean isOpen = false;
                 String text = "";
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+//                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//                sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
                 isOpen = item.getProfit() == 0 ? true : false;
                 direction = item.getDirection().equals("BUY") || item.getDirection().equals("买入") ? "long" : "short";
 
@@ -372,8 +378,8 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
                         text = String.format("平%s  price : %s  amout : %s profit : %s ", LongDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
                     }
                 }
-                coinStr += String.format("%s:%sPERP_%s_%s_%s_%s,\n", market,item.getCoin(), sdf.parse(item.getDate()).getTime(), text, direction, isOpen);
-
+//                coinStr += String.format("%s:%sPERP_%s_%s_%s_%s,\n", market,item.getCoin(), sdf.parse(item.getDate()).getTime(), text, direction, isOpen);
+                coinStr += String.format("%s:%sPERP_%s_%s_%s_%s,\n", market,item.getCoin(), item.getDate(), text, direction, isOpen);
             }
             res += coinStr;
 
@@ -386,7 +392,7 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
 
         }
         System.out.println(res);
-        tbOriginMapper.delete(new LambdaQueryWrapper<TbOrigin>().eq(TbOrigin::getRequestId, requestId));
+        //tbOriginMapper.delete(new LambdaQueryWrapper<TbOrigin>().eq(TbOrigin::getRequestId, requestId));
         return  Result.ok(res);
         } catch ( Exception e ){
             logger.error("解析数据发生异常",e);

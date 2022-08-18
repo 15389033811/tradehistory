@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trander History</title>
+    <link rel="stylesheet" type="text/css" href="../static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="use-guide">
+            <a href="https://energetic-story-30b.notion.site/a4590a2e2888485baf30741a594be808">使用指南</a>
+        </div>
+
+        <div class="left-layout">
+            <h1>Trader History</h1>
+            <div class="select">
+                <select onchange="handleSelected(this.value)">
+                  <option value="" disabled selected style="display: none;">Choose Your Market</option>
+                  <option value="BINANCE">BINANCE</option>
+                  <option value="OKX">OKX</option>
+                </select>
+            </div>
+            
+            <!-- 上传文件 -->
+            <div class="upload-container">
+                <label class="input-file" for="upload"> 
+                    <div class="add-text">attach files </div>
+                    <div class="add-button"/></div>
+                </label>
+                <input type="file" id="upload" onchange="getFile(value)"/>
+                <div class="file-name"></div>
+            </div>
+            
+            <!-- 上传按钮 下载按钮-->
+            <div class="button-container">
+                <button class="button-item" onclick="onSubmit()"><span>submit</span></button> 
+                <!-- <button class="button-item"><span>Download</span></button>  -->
+            </div>
+            
+        </div>
+        <div class="right-layout">
+            <div class="text-box"></div>
+            <textarea id="input" style="display: none;"></textarea>
+            <button class="button-item copy-text" onclick="handleCopy()"><span>Copy to clipboard</span></button>
+        </div>
+    </div>
+</body>
+</html>
+
+<script type="text/javascript" src="../static/js/index.js"></script>

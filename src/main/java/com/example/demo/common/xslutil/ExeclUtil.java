@@ -45,15 +45,23 @@ public class ExeclUtil {
 //      sheet.autoSizeColumn();
 
 
+//            File xlsFile = new File("/Users/nut/code/java/demo2/sgdsag.xlsx");
+//            xlsFile.createNewFile();
+//            os = new FileOutputStream(xlsFile);
+//            workbook.write(os);
+
+
             //临时缓冲区
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             //创建临时文件
             workbook.write(out);
+
+
+
             byte [] bookByteAry = out.toByteArray();
             InputStream  resInputStream = new ByteArrayInputStream(bookByteAry);
             return resInputStream;
         } catch (Exception e) {
-
             return null;
         }
     }

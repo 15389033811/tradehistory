@@ -19,6 +19,7 @@ import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -34,6 +35,20 @@ class Demo2ApplicationTests {
     //
     @Autowired
     TbOriginMapper tbOriginMapper;
+
+    @Value("${uri-white.white-path:#{null}}")
+    Map<String,Boolean> whiteList;
+
+    @Value("${uri-white.header:}")
+    String whiteHeader;
+
+
+    @Test
+    void contds() throws Exception{
+        System.out.println(whiteList);
+        System.out.println(whiteHeader.equals(""));
+    }
+
 
     @Test
     void contextLoads() throws Exception {
@@ -321,59 +336,55 @@ class Demo2ApplicationTests {
      *
      * @return
      */
-//    @Test
-//    void getWorkbookByCsv() throws IOException {
-//        OutputStream os = null;
-//        SXSSFWorkbook workbook = null;
-//        CsvReader reader = null;
-//        File xlsFile = null;
-//        String csvFilePath = "D:\\code\\java\\tradefile\\tradehistory\\222.csv";
-//        try {
-//
-//            // 文件的编码，这里设为UTF_8
-//            reader = new CsvReader(new FileInputStream(csvFilePath), ',', StandardCharsets.UTF_8);
-//
-//
-//            ArrayList<String[]> dataList = new ArrayList<>();
-//            while (reader.readRecord()) {
-//                dataList.add(reader.getValues());
-//            }
-//
-//            workbook = new SXSSFWorkbook(1024);//缓存
-//            SXSSFSheet sheet = workbook.createSheet("Sheet1");
-////      HSSFSheet sheet = (HSSFSheet) sheet1;
-//
-//            for (int rowNum = 0; rowNum < dataList.size(); rowNum++) {
-//                String[] data = dataList.get(rowNum);
-//                SXSSFRow row = sheet.createRow(rowNum);
-//                for (int columnNum = 0; columnNum < data.length; columnNum++) {
-//                    SXSSFCell cell = row.createCell(columnNum);
-//                    cell.setCellValue(data[columnNum]);
-//                }
-//            }
-////      sheet.autoSizeColumn();
-//
-//            String xlsPath = csvFilePath.replaceAll(".csv", ".xlsx");
-//
-//            //临时缓冲区
-//            ByteArrayOutputStream out = new ByteArrayOutputStream();
-//            //创建临时文件
-//            workbook.write(out);
-//            byte [] bookByteAry = out.toByteArray();
-//            InputStream  in = new ByteArrayInputStream(bookByteAry);
-//            return in;
-//        } catch (Exception e) {
-//            logger.error("yc",e);
-//        } finally {
-//            try {
-//                workbook.close();
-//                workbook.dispose();//删除临时文件
-//                reader.close();
-//                os.close();
-//            } catch (Exception e) {
-//                logger.error("yc", e);
-//            }
-//        }
-//        return ;
-//    }
+    @Test
+    void getWorkbookByCsv() throws IOException {
+        OutputStream os = null;
+        SXSSFWorkbook workbook = null;
+        CsvReader reader = null;
+        File xlsFile=null;
+        String csvFilePath = "/Users/nut/code/java/demo2/222.csv";
+        try {
+
+            // 文件的编码，这里设为UTF_8
+            reader = new CsvReader(new FileInputStream(csvFilePath), ',', StandardCharsets.UTF_8);
+
+
+            ArrayList<String[]> dataList = new ArrayList<>();
+            while (reader.readRecord()) {
+                dataList.add(reader.getValues());
+            }
+
+            workbook = new SXSSFWorkbook(1024);//缓存
+            SXSSFSheet sheet = workbook.createSheet("账单页");
+//      HSSFSheet sheet = (HSSFSheet) sheet1;
+
+            for (int rowNum = 0; rowNum < dataList.size(); rowNum++) {
+                String[] data = dataList.get(rowNum);
+                SXSSFRow row = sheet.createRow(rowNum);
+                for (int columnNum = 0; columnNum < data.length; columnNum++) {
+                    SXSSFCell cell = row.createCell(columnNum);
+                    cell.setCellValue(data[columnNum]);
+                }
+            }
+//      sheet.autoSizeColumn();
+
+            String xlsPath = csvFilePath.replaceAll(".csv", ".xlsx");
+            xlsFile = new File(xlsPath);
+            xlsFile.createNewFile();
+            os = new FileOutputStream(xlsFile);
+            workbook.write(os);
+
+        } catch (Exception e) {
+            logger.error("j",e);
+        } finally {
+            try {
+                workbook.close();
+                workbook.dispose();//删除临时文件
+                reader.close();
+                os.close();
+            } catch (Exception e) {
+                logger.error("j",e);
+            }
+        }
+    }
 }

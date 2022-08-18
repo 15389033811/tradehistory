@@ -2,10 +2,15 @@ spring:
   datasource:
     driver-class-name: com.mysql.jdbc.Driver
     password: 12345678
-    url: jdbc:mysql://127.0.0.1/world?useUnicode=true&characterEncoding=utf8&nullCatalogMeansCurrent=true&useSSL=false&useLegacyDatetimeCode=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://127.0.0.1/cim?useUnicode=true&characterEncoding=utf8&nullCatalogMeansCurrent=true&useSSL=false&useLegacyDatetimeCode=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     username: root
     thymeleaf:
       prefix: classpath:/templates/
+  servlet:
+    multipart:
+      enabled: true #是否启用http上传处理
+      max-file-size: 10MB #设置单个文件最大长度
+      max-request-size: 10MB #最大请求文件的大小
 
   mvc:
     static-path-pattern: /static/**
