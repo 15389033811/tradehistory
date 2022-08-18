@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trander History</title>
-    <link rel="stylesheet" type="text/css" href="../static/css/style.css">
+    <link rel="stylesheet" type="text/css" href="./style.css">
 </head>
 <body>
     <div class="container">
@@ -16,7 +16,7 @@
         <div class="left-layout">
             <h1>Trader History</h1>
             <div class="select">
-                <select onchange="handleSelected(this.value)">
+                <select id="market-select">
                   <option value="" disabled selected style="display: none;">Choose Your Market</option>
                   <option value="BINANCE">BINANCE</option>
                   <option value="OKX">OKX</option>
@@ -49,4 +49,4 @@
 </body>
 </html>
 
-<script type="text/javascript" src="../static/js/index.js"></script>
+<script type="text/javascript" src="./index.js"></script>

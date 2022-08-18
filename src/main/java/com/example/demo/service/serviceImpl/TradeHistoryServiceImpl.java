@@ -354,7 +354,7 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
             List<TbOrigin> tbOriginNewList = tbOriginMapper.selectList(new
                     QueryWrapper<TbOrigin>()
                     .select("id, date,avg_price,direction,coin,SUM(tb_origin.transaction_amount) as transaction_amount,SUM(tb_origin.profit) as profit")
-                    .eq("coin", tbCoinItem.getCoin()).groupBy("date,direction"));
+                    .eq("coin", tbCoinItem.getCoin()).eq("request_id",tbCoinItem.getRequestId()).groupBy("date,direction"));
             // 对每一笔操作生成字符串
             for (TbOrigin item : tbOriginNewList) {
                 Boolean isOpen = false;
@@ -392,7 +392,7 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
 
         }
         System.out.println(res);
-        //tbOriginMapper.delete(new LambdaQueryWrapper<TbOrigin>().eq(TbOrigin::getRequestId, requestId));
+        tbOriginMapper.delete(new LambdaQueryWrapper<TbOrigin>().eq(TbOrigin::getRequestId, requestId));
         return  Result.ok(res);
         } catch ( Exception e ){
             logger.error("解析数据发生异常",e);
