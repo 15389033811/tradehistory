@@ -316,6 +316,10 @@ input {
     border-image: linear-gradient(30deg, #c6aff8, #578aef, #7ab5d3) 1;
     animation: animated-border 2s infinite;
     overflow-y: auto;
+    white-space: normal;
+    word-wrap: break-word;
+    word-break: break-all;
+    overflow-x: hidden;
   }
 
   .copy-text {

@@ -256,7 +256,9 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
 
             resList.add(tbOrigin);
         }
-        getTradeDataStr(resList,"OKX");
+
+        List<TbOrigin> resTbOriginTemp = calculateOriginInfo(resList);
+
         return resList;
     }
 
@@ -376,6 +378,11 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
             resList.add(tbOrigin);
         }
 
+        List<TbOrigin> resTbOriginTemp = calculateOriginInfo(resList);
+        return resTbOriginTemp;
+    }
+
+    public List<TbOrigin> calculateOriginInfo(List<TbOrigin> resList){
         Map<String,List<TbOrigin>> groupByMap = resList
                 .stream()
                 .collect(Collectors
@@ -383,20 +390,21 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
 
         List<TbOrigin> resTbOriginTemp = new ArrayList<>();
         groupByMap.forEach((originKey,originVal) ->{
+            Double profitTemp = 0D;
+            Double amountTemp = 0D;
             TbOrigin tbOriginTemp = new TbOrigin();
             BeanUtils.copyProperties(originVal.get(0),tbOriginTemp);
-            originVal.forEach((tbOriginItem) -> {
-                tbOriginTemp.setProfit(tbOriginTemp.getProfit() + tbOriginItem.getProfit());
-                tbOriginTemp.setTransactionAmount(tbOriginTemp.getTransactionAmount()+tbOriginItem.getTransactionAmount());
-            });
+            for (TbOrigin tbOriginItem : originVal){
+                profitTemp =profitTemp + tbOriginItem.getProfit();
+                amountTemp += tbOriginItem.getTransactionAmount();
+            }
+            tbOriginTemp.setProfit(profitTemp);
+            tbOriginTemp.setTransactionAmount(amountTemp);
             resTbOriginTemp.add(tbOriginTemp);
         });
-
-
-
-        getTradeDataStr(resTbOriginTemp,"BINANCE");
         return resTbOriginTemp;
     }
+
 
     public byte[] getNewData(String requestId) throws Exception {
 
@@ -445,82 +453,6 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
         // fos.close();
     }
 
-
-    public byte[] getNewData2(String requestId) throws Exception {
-        String LongDirection = "多";
-        String ShortDirection = "空";
-        String upBar = "location.abovebar";
-        String downBar = "location.belowbar";
-        String res = "//@version=5\n" +
-                "indicator(\"input.bool\", overlay=true) \n";
-        String longPicture = "shape.arrowup";
-        String longColor = "#72e577";
-        String shortPicture = "shape.arrowdown";
-        String shortColor = "#ff5252";
-
-
-        List<TbOrigin> tbCointList = tbOriginMapper.selectList(new
-                QueryWrapper<TbOrigin>().lambda().groupBy(TbOrigin::getCoin));
-        for (TbOrigin tbCoinItem : tbCointList) {
-            String coinStr = "//---" + tbCoinItem.getCoin() + "--- \n";
-            List<TbOrigin> tbOriginNewList = tbOriginMapper.selectList(new
-                    QueryWrapper<TbOrigin>()
-                    .select("id, date,avg_price,direction,coin,SUM(tb_origin.transaction_amount) as transaction_amount,SUM(tb_origin.profit) as profit")
-                    .eq("coin", tbCoinItem.getCoin()).groupBy("date,direction"));
-            // 对每一笔操作生成字符串
-            for (TbOrigin item : tbOriginNewList) {
-                Boolean isOpen = false;
-                Boolean isLongDirection = false;
-                String location = "";
-                String text = "";
-                String picture = "";
-                String color = "";
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-                isOpen = item.getProfit() == 0 ? true : false;
-                isLongDirection = item.getDirection().equals("买入") || item.getDirection().equals("BUY") ? true : false;
-                //根据操作方向设置图标
-                if (isLongDirection) {
-                    picture = longPicture;
-                    color = longColor;
-                } else {
-                    picture = shortPicture;
-                    color = shortColor;
-                }
-
-
-                //设置开单or平单
-                if (isOpen) {
-                    if (isLongDirection) {
-                        text = String.format("\"开%s \\n price : %s \\n amout : %s \"", LongDirection, item.getAvgPrice(), item.getTransactionAmount());
-                        location = downBar;
-                    } else {
-                        text = String.format("\"开%s \\n price : %s \\n amout : %s \"", ShortDirection, item.getAvgPrice(), item.getTransactionAmount());
-                        location = upBar;
-                    }
-                } else {
-                    if (isLongDirection) {
-                        text = String.format("\"平%s \\n price : %s \\n amout : %s\\n profit : %s \"", ShortDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
-                        location = downBar;
-                    } else {
-                        text = String.format("\"平%s \\n price : %s \\n amout : %s\\n profit : %s \"", LongDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
-                        location = upBar;
-                    }
-                }
-
-
-                coinStr += String.format("plotshape((syminfo.tickerid == \"BINANCE:%sPERP\") and (time_close - timeframe.in_seconds()*1000) <= %s and time_close > %s,text = %s, style = %s,color = %s ,textcolor = %s ,location  = %s,display = display.pane) \n"
-                        , item.getCoin(), sdf.parse(item.getDate()).getTime(), sdf.parse(item.getDate()).getTime(), text, picture, color, color, location);
-
-
-            }
-            res += coinStr;
-
-        }
-
-        tbOriginMapper.delete(new LambdaQueryWrapper<TbOrigin>().eq(TbOrigin::getRequestId, requestId));
-        return res.getBytes();
-    }
 
     public Result<String> getTradeDataStr(String requestId, String market) throws Exception {
         String LongDirection = "多";
@@ -607,15 +539,15 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
                 //设置开单or平单
                 if (isOpen) {
                     if (direction.equals("long")) {
-                        text = String.format("开%s  price : %s  amout : %s ", LongDirection, item.getAvgPrice(), item.getTransactionAmount());
+                        text = String.format("开%s  price : %s  amout : %.2f ", LongDirection, item.getAvgPrice(), item.getTransactionAmount());
                     } else {
-                        text = String.format("开%s  price : %s  amout : %s ", ShortDirection, item.getAvgPrice(), item.getTransactionAmount());
+                        text = String.format("开%s  price : %s  amout : %.2f ", ShortDirection, item.getAvgPrice(), item.getTransactionAmount());
                     }
                 } else {
                     if (direction.equals("long")) {
-                        text = String.format("平%s  price : %s  amout : %s profit : %s ", ShortDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
+                        text = String.format("平%s  price : %s  amout : %.2f profit : %.2f ", ShortDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
                     } else {
-                        text = String.format("平%s  price : %s  amout : %s profit : %s ", LongDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
+                        text = String.format("平%s  price : %s  amout : %.2f profit : %.2f ", LongDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
                     }
                 }
 //                coinStr += String.format("%s:%sPERP_%s_%s_%s_%s,\n", market,item.getCoin(), sdf.parse(item.getDate()).getTime(), text, direction, isOpen);
@@ -635,7 +567,7 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
         } catch (Exception e) {
             logger.error("解析数据发生异常", e);
             e.printStackTrace();
-            return Result.failWithMsg(e.toString());
+            return Result.failWithMsg("生成数据异常，请检查文件后再次尝试");
         }
     }
 
@@ -652,4 +584,83 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
 
     }
 
+
+
+
+
+    public byte[] getNewData2(String requestId) throws Exception {
+        String LongDirection = "多";
+        String ShortDirection = "空";
+        String upBar = "location.abovebar";
+        String downBar = "location.belowbar";
+        String res = "//@version=5\n" +
+                "indicator(\"input.bool\", overlay=true) \n";
+        String longPicture = "shape.arrowup";
+        String longColor = "#72e577";
+        String shortPicture = "shape.arrowdown";
+        String shortColor = "#ff5252";
+
+
+        List<TbOrigin> tbCointList = tbOriginMapper.selectList(new
+                QueryWrapper<TbOrigin>().lambda().groupBy(TbOrigin::getCoin));
+        for (TbOrigin tbCoinItem : tbCointList) {
+            String coinStr = "//---" + tbCoinItem.getCoin() + "--- \n";
+            List<TbOrigin> tbOriginNewList = tbOriginMapper.selectList(new
+                    QueryWrapper<TbOrigin>()
+                    .select("id, date,avg_price,direction,coin,SUM(tb_origin.transaction_amount) as transaction_amount,SUM(tb_origin.profit) as profit")
+                    .eq("coin", tbCoinItem.getCoin()).groupBy("date,direction"));
+            // 对每一笔操作生成字符串
+            for (TbOrigin item : tbOriginNewList) {
+                Boolean isOpen = false;
+                Boolean isLongDirection = false;
+                String location = "";
+                String text = "";
+                String picture = "";
+                String color = "";
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                isOpen = item.getProfit() == 0 ? true : false;
+                isLongDirection = item.getDirection().equals("买入") || item.getDirection().equals("BUY") ? true : false;
+                //根据操作方向设置图标
+                if (isLongDirection) {
+                    picture = longPicture;
+                    color = longColor;
+                } else {
+                    picture = shortPicture;
+                    color = shortColor;
+                }
+
+
+                //设置开单or平单
+                if (isOpen) {
+                    if (isLongDirection) {
+                        text = String.format("\"开%s \\n price : %s \\n amout : %s \"", LongDirection, item.getAvgPrice(), item.getTransactionAmount());
+                        location = downBar;
+                    } else {
+                        text = String.format("\"开%s \\n price : %s \\n amout : %s \"", ShortDirection, item.getAvgPrice(), item.getTransactionAmount());
+                        location = upBar;
+                    }
+                } else {
+                    if (isLongDirection) {
+                        text = String.format("\"平%s \\n price : %s \\n amout : %s\\n profit : %s \"", ShortDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
+                        location = downBar;
+                    } else {
+                        text = String.format("\"平%s \\n price : %s \\n amout : %s\\n profit : %s \"", LongDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
+                        location = upBar;
+                    }
+                }
+
+
+                coinStr += String.format("plotshape((syminfo.tickerid == \"BINANCE:%sPERP\") and (time_close - timeframe.in_seconds()*1000) <= %s and time_close > %s,text = %s, style = %s,color = %s ,textcolor = %s ,location  = %s,display = display.pane) \n"
+                        , item.getCoin(), sdf.parse(item.getDate()).getTime(), sdf.parse(item.getDate()).getTime(), text, picture, color, color, location);
+
+
+            }
+            res += coinStr;
+
+        }
+
+        tbOriginMapper.delete(new LambdaQueryWrapper<TbOrigin>().eq(TbOrigin::getRequestId, requestId));
+        return res.getBytes();
+    }
 }
