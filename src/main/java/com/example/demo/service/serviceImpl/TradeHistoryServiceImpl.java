@@ -78,25 +78,25 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
     }
 
     public Result<String> insertFileInfoByMap(InputStream inputStream, String requestId, String market, String fileName) throws Exception {
-
+        List<TbOrigin> parseList = new ArrayList();
         try {
             switch (market) {
                 case "BINANCE":
                     if (!fileName.endsWith("xls") && !fileName.endsWith("xlsx")) {
                         return Result.failWithMsg("币安交易所请上传后缀为xls、xlsx的文件");
                     }
-                    parseBinanceDataByMap(inputStream);
+                    parseList = parseBinanceDataByMap(inputStream);
                     break;
                 case "OKX":
                     if (!fileName.endsWith("csv")) {
                         return Result.failWithMsg("欧意交易所请上传后缀为csv的文件");
                     }
-                    parseOkxDataByMap(inputStream);
+                    parseList = parseOkxDataByMap(inputStream);
                     break;
                 default:
                     return Result.failWithMsg("敬请等待支持更多交易所");
             }
-            Result<String> dataRes = getTradeDataStr(requestId, market);
+            Result<String> dataRes = getTradeDataStr(parseList, market);
 
             if (dataRes.getCode() == -1) {
                 logger.error("解析数据异常", dataRes.getMessage());
@@ -185,7 +185,7 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
     }
 
 
-    public void parseOkxDataByMap(InputStream inputStream) throws Exception {
+    public List<TbOrigin> parseOkxDataByMap(InputStream inputStream) throws Exception {
         List<TbOrigin> resList = new ArrayList<>();
         InputStream xlsInputStream = execlUtil.getWorkbookByCsv(inputStream);
         Workbook workbook = WorkbookFactory.create(xlsInputStream);
@@ -257,7 +257,7 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
             resList.add(tbOrigin);
         }
         getTradeDataStr(resList,"OKX");
-        return ;
+        return resList;
     }
 
 
@@ -395,7 +395,7 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
 
 
         getTradeDataStr(resTbOriginTemp,"BINANCE");
-        return resList;
+        return resTbOriginTemp;
     }
 
     public byte[] getNewData(String requestId) throws Exception {
@@ -564,7 +564,7 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
                         }
                     }
 //                coinStr += String.format("%s:%sPERP_%s_%s_%s_%s,\n", market,item.getCoin(), sdf.parse(item.getDate()).getTime(), text, direction, isOpen);
-                    coinStr += String.format("%s:%sPERP_%s_%s_%s_%s,\n", market, item.getCoin(), item.getDate(), text, direction, isOpen);
+                    coinStr += String.format("%s:%sPERP_%s_%s_%s_%s,", market, item.getCoin(), item.getDate(), text, direction, isOpen);
                 }
                 res += coinStr;
 
@@ -619,7 +619,7 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
                     }
                 }
 //                coinStr += String.format("%s:%sPERP_%s_%s_%s_%s,\n", market,item.getCoin(), sdf.parse(item.getDate()).getTime(), text, direction, isOpen);
-                res += String.format("%s:%sPERP_%s_%s_%s_%s,\n", market, item.getCoin(), item.getDate(), text, direction, isOpen);
+                res += String.format("%s:%sPERP_%s_%s_%s_%s,", market, item.getCoin(), item.getDate(), text, direction, isOpen);
             }
 
 
