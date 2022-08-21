@@ -245,9 +245,10 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
                         break;
                     case 8:
                         // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
-                        tbOrigin.setTransactionAmount(
-                                Double.valueOf(row.getCell(11).getStringCellValue())
-                                        * Double.valueOf(row.getCell(j).getStringCellValue()));
+//                        tbOrigin.setTransactionAmount(
+//                                Double.valueOf(row.getCell(11).getStringCellValue())
+//                                        * Double.valueOf(row.getCell(j).getStringCellValue()));
+                        tbOrigin.setTransactionAmount(Double.valueOf(row.getCell(j).getStringCellValue()));
                         break;
                     case 12:
                         // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
@@ -263,7 +264,7 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
 
         List<TbOrigin> resTbOriginTemp = calculateOriginInfo(resList);
 
-        return resList;
+        return resTbOriginTemp;
     }
 
 
@@ -463,7 +464,14 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
         String ShortDirection = "空";
         String res = "";
         String direction = "";
+        String amountUnit = "";
         StringBuilder stringBuilder = new StringBuilder();
+
+        if (market.equals(MarketEnum.BINANCE)){
+            amountUnit = "u";
+        } else if (market.equals(MarketEnum.OKX)) {
+            amountUnit = "张";
+        }
 
         try {
 
@@ -488,15 +496,15 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
                     //设置开单or平单
                     if (isOpen) {
                         if (direction.equals("long")) {
-                            text = String.format("开%s  price : %s  amout : %s ", LongDirection, item.getAvgPrice(), item.getTransactionAmount());
+                            text = String.format("开%s  price : %s  amout : %s%s ", LongDirection, item.getAvgPrice(), item.getTransactionAmount(),amountUnit);
                         } else {
-                            text = String.format("开%s  price : %s  amout : %s ", ShortDirection, item.getAvgPrice(), item.getTransactionAmount());
+                            text = String.format("开%s  price : %s  amout : %s%s ", ShortDirection, item.getAvgPrice(), item.getTransactionAmount(),amountUnit);
                         }
                     } else {
                         if (direction.equals("long")) {
-                            text = String.format("平%s  price : %s  amout : %s profit : %s ", ShortDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
+                            text = String.format("平%s  price : %s  amout : %s%s profit : %s u ", ShortDirection, item.getAvgPrice(), item.getTransactionAmount(),amountUnit ,item.getProfit());
                         } else {
-                            text = String.format("平%s  price : %s  amout : %s profit : %s ", LongDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
+                            text = String.format("平%s  price : %s  amout : %s%s profit : %s u ", LongDirection, item.getAvgPrice(), item.getTransactionAmount(), amountUnit,item.getProfit());
                         }
                     }
 //                coinStr += String.format("%s:%sPERP_%s_%s_%s_%s,\n", market,item.getCoin(), sdf.parse(item.getDate()).getTime(), text, direction, isOpen);
@@ -529,7 +537,14 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
         String res = "";
         String direction = "";
         StringBuilder stringBuilder = new StringBuilder();
-
+        String amountUnit = "";
+        if (market.equals(MarketEnum.BINANCE.getMarket())){
+            amountUnit = "u";
+        } else if (market.equals(MarketEnum.OKX.getMarket())) {
+            amountUnit = "张";
+        }
+        System.out.println("dfddfdfgdsafadfds");
+        System.out.println(amountUnit);
         try {
             // 对每一笔操作生成字符串
             for (TbOrigin item : tbOrigins) {
@@ -543,15 +558,15 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
                 //设置开单or平单
                 if (isOpen) {
                     if (direction.equals("long")) {
-                        text = String.format("开%s  price : %s  amout : %.2f ", LongDirection, item.getAvgPrice(), item.getTransactionAmount());
+                        text = String.format("开%s  price : %s  amout : %.2f%s ", LongDirection, item.getAvgPrice(), item.getTransactionAmount(),amountUnit);
                     } else {
-                        text = String.format("开%s  price : %s  amout : %.2f ", ShortDirection, item.getAvgPrice(), item.getTransactionAmount());
+                        text = String.format("开%s  price : %s  amout : %.2f%s ", ShortDirection, item.getAvgPrice(), item.getTransactionAmount(),amountUnit);
                     }
                 } else {
                     if (direction.equals("long")) {
-                        text = String.format("平%s  price : %s  amout : %.2f profit : %.2f ", ShortDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
+                        text = String.format("平%s  price : %s  amout : %.2f%s profit : %.2fu ", ShortDirection, item.getAvgPrice(), item.getTransactionAmount(), amountUnit, item.getProfit());
                     } else {
-                        text = String.format("平%s  price : %s  amout : %.2f profit : %.2f ", LongDirection, item.getAvgPrice(), item.getTransactionAmount(), item.getProfit());
+                        text = String.format("平%s  price : %s  amout : %.2f%s profit : %.2fu ", LongDirection, item.getAvgPrice(), item.getTransactionAmount(), amountUnit, item.getProfit());
                     }
                 }
 //                coinStr += String.format("%s:%sPERP_%s_%s_%s_%s,\n", market,item.getCoin(), sdf.parse(item.getDate()).getTime(), text, direction, isOpen);
