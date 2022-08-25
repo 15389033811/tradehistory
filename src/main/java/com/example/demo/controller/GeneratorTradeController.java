@@ -8,12 +8,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.UUID;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 
 import com.example.demo.common.Result;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -28,6 +32,9 @@ public class GeneratorTradeController {
     @Autowired
     TradeHistoryService tradeHistoryService;
 
+    @Resource
+    RedisTemplate redisTemplate;
+
     @PostMapping("/upload")
     public Result<String> parseFile(HttpServletResponse response
             , @RequestParam(value = "file", required = true) MultipartFile file
@@ -36,11 +43,23 @@ public class GeneratorTradeController {
             return Result.failWithMsg("上传失败，请选择文件");
         }
 
+
+        //统计使用量
+        try {
+            Date date = new Date();//此时date为当前的时间
+            SimpleDateFormat dateFormat = new SimpleDateFormat("YYYY-MM-dd");//设置当前时间的格式，为年-月-日
+            String dateInfo = dateFormat.format(date);
+            redisTemplate.opsForValue().increment(dateInfo, 1);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         // 生成uuid
         String requestId = UUID.randomUUID().toString();
 
         InputStream fileInputStream = file.getInputStream();
         String fileName = file.getOriginalFilename();
+
         Result<String> result = tradeHistoryService.insertFileInfoByMap(fileInputStream, requestId,market,fileName);;
 
         // 将文件写入输入流
