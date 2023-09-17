@@ -1,15 +1,12 @@
 package com.example.demo.service.serviceImpl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.alibaba.fastjson.JSON;
 import com.example.demo.common.Result;
 import com.example.demo.common.xslutil.ExeclUtil;
-import com.example.demo.dao.TbOriginMapper;
 import com.example.demo.entity.TbOrigin;
 import com.example.demo.enums.DirectionEnum;
 import com.example.demo.enums.MarketEnum;
 import com.example.demo.service.TradeHistoryService;
-
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -18,17 +15,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import javax.annotation.Resource;
-import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -36,8 +24,6 @@ import java.util.stream.Collectors;
 @Service
 public class TradeHistoryServiceImpl implements TradeHistoryService {
 
-    @Autowired
-    TbOriginMapper tbOriginMapper;
 
     @Autowired
     ExeclUtil execlUtil;
@@ -56,6 +42,7 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
             if (fileName.endsWith("csv")) {
                  inputStream = execlUtil.getWorkbookByCsv(inputStream);
             }
+            logger.info("market {}", market);
 
             switch (market) {
                 case "BINANCE":
@@ -68,6 +55,8 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
                     return Result.failWithMsg("敬请等待支持更多交易所");
             }
             Result<String> dataRes = getTradeDataStr(parseList, market);
+            System.out.println("vvvvv");
+            System.out.println(dataRes.getResult());
 
             if (dataRes.getCode() == -1) {
                 logger.error("解析数据异常", dataRes.getMessage());
@@ -191,6 +180,7 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
                         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
                         tbOrigin.setDate(Long.toString(sdf.parse(row.getCell(j).getStringCellValue()).getTime()));
+                        logger.info(tbOrigin.getDate());
                         break;
                     case 1:
                         // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
@@ -260,7 +250,9 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
         } else if (market.equals(MarketEnum.OKX.getMarket())) {
             amountUnit = "张";
         }
-        System.out.println(amountUnit);
+        HashMap<String, Double> hashMap = new HashMap();
+        HashMap<String, String> coinMap = new HashMap<>();
+        HashMap<String, String> sortByCoinMap = new HashMap<>();
         try {
             // 对每一笔操作生成字符串
             for (TbOrigin item : tbOrigins) {
@@ -274,19 +266,34 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
                 //设置开单or平单
                 if (isOpen) {
                     if (direction.equals("long")) {
-                        text = String.format("开%s  price : %s  amout : %.2f%s ", LongDirection, item.getAvgPrice(), item.getTransactionAmount(),amountUnit);
+                        text = String.format("开%s p:%s m:%.2f%s", LongDirection, item.getAvgPrice(), item.getTransactionAmount(), amountUnit);
                     } else {
-                        text = String.format("开%s  price : %s  amout : %.2f%s ", ShortDirection, item.getAvgPrice(), item.getTransactionAmount(),amountUnit);
+                        text = String.format("开%s p:%s m:%.2f%s", ShortDirection, item.getAvgPrice(), item.getTransactionAmount(), amountUnit);
                     }
                 } else {
                     if (direction.equals("long")) {
-                        text = String.format("平%s  price : %s  amout : %.2f%s profit : %.2fu ", ShortDirection, item.getAvgPrice(), item.getTransactionAmount(), amountUnit, item.getProfit());
+                        text = String.format("平%s p:%s m:%.2f%s p:%.2fu", ShortDirection, item.getAvgPrice(), item.getTransactionAmount(), amountUnit, item.getProfit());
                     } else {
-                        text = String.format("平%s  price : %s  amout : %.2f%s profit : %.2fu ", LongDirection, item.getAvgPrice(), item.getTransactionAmount(), amountUnit, item.getProfit());
+                        text = String.format("平%s p:%s m:%.2f%s p:%.2fu", LongDirection, item.getAvgPrice(), item.getTransactionAmount(), amountUnit, item.getProfit());
                     }
+
+                    if (hashMap.containsKey(item.getCoin())) {
+                        hashMap.put(item.getCoin(), hashMap.get(item.getCoin()) + item.getProfit());
+                    } else {
+                        hashMap.put(item.getCoin(), item.getProfit());
+                    }
+
+
+
+                }
+
+                if (coinMap.containsKey(item.getCoin())) {
+                    coinMap.put(item.getCoin(), coinMap.get(item.getCoin()) + String.format("%s:%s.P_%s_%s_%s_%s,", market, item.getCoin(), item.getDate(), text, direction, isOpen));
+                } else {
+                    coinMap.put(item.getCoin(), String.format("%s:%s.P_%s_%s_%s_%s,", market, item.getCoin(), item.getDate(), text, direction, isOpen));
                 }
 //                coinStr += String.format("%s:%sPERP_%s_%s_%s_%s,\n", market,item.getCoin(), sdf.parse(item.getDate()).getTime(), text, direction, isOpen);
-                res += String.format("%s:%sPERP_%s_%s_%s_%s,", market, item.getCoin(), item.getDate(), text, direction, isOpen);
+                res += String.format("%s:%s.P_%s_%s_%s_%s,", market, item.getCoin(), item.getDate(), text, direction, isOpen);
             }
 
 
@@ -297,8 +304,12 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
                 res = stringBuilder.toString();
 
             }
-            System.out.println(res);
-            return Result.ok(res);
+            System.out.println(JSON.toJSONString(hashMap));
+            logger.info("sort By Coin");
+            coinMap.forEach((k,v) -> {
+                logger.info(v);
+            });
+            return Result.ok(coinMap.toString());
         } catch (Exception e) {
             logger.error("解析数据发生异常", e);
             e.printStackTrace();

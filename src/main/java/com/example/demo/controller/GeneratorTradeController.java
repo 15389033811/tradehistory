@@ -32,8 +32,8 @@ public class GeneratorTradeController {
     @Autowired
     TradeHistoryService tradeHistoryService;
 
-    @Resource
-    RedisTemplate redisTemplate;
+//    @Resource
+//    RedisTemplate redisTemplate;
 
     @PostMapping("/upload")
     public Result<String> parseFile(HttpServletResponse response
@@ -42,17 +42,17 @@ public class GeneratorTradeController {
         if (file.isEmpty()) {
             return Result.failWithMsg("上传失败，请选择文件");
         }
+        System.out.println("________________"+ market);
 
-
-        //统计使用量
-        try {
-            Date date = new Date();//此时date为当前的时间
-            SimpleDateFormat dateFormat = new SimpleDateFormat("YYYY-MM-dd");//设置当前时间的格式，为年-月-日
-            String dateInfo = dateFormat.format(date);
-            redisTemplate.opsForValue().increment(dateInfo, 1);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//        //统计使用量
+//        try {
+//            Date date = new Date();//此时date为当前的时间
+//            SimpleDateFormat dateFormat = new SimpleDateFormat("YYYY-MM-dd");//设置当前时间的格式，为年-月-日
+//            String dateInfo = dateFormat.format(date);
+//            redisTemplate.opsForValue().increment(dateInfo, 1);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
 
         // 生成uuid
         String requestId = UUID.randomUUID().toString();
