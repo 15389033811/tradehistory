@@ -3,7 +3,10 @@ package com.example.demo.entity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import lombok.EqualsAndHashCode;
+
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * <p>
@@ -13,6 +16,7 @@ import java.io.Serializable;
  * @author feiyyu
  * @since 2022-06-14
  */
+//@EqualsAndHashCode(of = {"date", "coin", "direction"})
 @TableName("tb_origin")
 public class TbOrigin implements Serializable {
 
@@ -117,5 +121,22 @@ public class TbOrigin implements Serializable {
                 ", profit=" + profit +
                 "}";
     }
+
+
+//    @Override
+//    public boolean equals(Object o) {
+//        if (this == o) return true;
+//        if (o == null || getClass() != o.getClass()) return false;
+//        TbOrigin myObject = (TbOrigin) o;
+//        return Objects.equals(date, myObject.getDate()) && Objects.equals(coin, myObject.getCoin());
+//    }
+//
+//    @Override
+//    public int hashCode() {
+//        int result = 17;
+//        result = 31 * result + (date == null ? 0 : date.hashCode());
+//        result = 31 * result + (coin == null ? 0 : coin.hashCode());
+//        return result;
+//    }
 
 }

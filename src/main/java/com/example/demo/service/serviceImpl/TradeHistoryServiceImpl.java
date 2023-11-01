@@ -1,6 +1,8 @@
 package com.example.demo.service.serviceImpl;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.example.demo.common.Result;
 import com.example.demo.common.xslutil.ExeclUtil;
 import com.example.demo.entity.TbOrigin;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 @Service
@@ -54,8 +57,8 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
                 default:
                     return Result.failWithMsg("敬请等待支持更多交易所");
             }
+            logger.info("parseList {}", parseList);
             Result<String> dataRes = getTradeDataStr(parseList, market);
-            System.out.println("vvvvv");
             System.out.println(dataRes.getResult());
 
             if (dataRes.getCode() == -1) {
@@ -152,6 +155,70 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
     }
 
 
+    public String generatorBingData(String jsonString) {
+        class CustomClass {
+            String name;
+            Double value;
+            JSONObject itemStyle;
+
+            public String getName() {
+                return name;
+            }
+
+            public void setName(String name) {
+                this.name = name;
+            }
+
+            public Double getValue() {
+                return value;
+            }
+
+            public void setValue(Double value) {
+                this.value = value;
+            }
+
+            public JSONObject getItemStyle() {
+                return itemStyle;
+            }
+
+            public void setItemStyle(JSONObject itemStyle) {
+                this.itemStyle = itemStyle;
+            }
+
+            @Override
+            public String toString() {
+                return "{ value: " + value + ", name: \"" + name + "\", itemStyle: " + itemStyle + " }";
+            }
+        }
+
+        JSONArray jsonArray = JSONArray.parseArray(jsonString);
+        List<CustomClass> customClassList = new ArrayList<>();
+
+        for (int i = 0; i < jsonArray.size(); i++) {
+            JSONObject item = jsonArray.getJSONObject(i);
+            String key = item.keySet().iterator().next();
+            Double val = item.getDouble(key);
+
+            CustomClass customClass = new CustomClass();
+            customClass.setName(key);
+
+
+            JSONObject itemStyle = new JSONObject();
+            if (val < 0) {
+                itemStyle.put("color", "#ff6600");
+                val = -val;
+            } else {
+                itemStyle.put("color", "#66ff66");
+            }
+            customClass.setValue(val);
+            customClass.setItemStyle(itemStyle);
+
+            customClassList.add(customClass);
+
+        }
+        return customClassList.toString();
+    }
+
 
     public List<TbOrigin> parseBinanceDataByMap(InputStream inputStream) throws Exception {
         List<TbOrigin> resList = new ArrayList<>();
@@ -180,7 +247,6 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
                         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
                         tbOrigin.setDate(Long.toString(sdf.parse(row.getCell(j).getStringCellValue()).getTime()));
-                        logger.info(tbOrigin.getDate());
                         break;
                     case 1:
                         // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
@@ -214,7 +280,42 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
         return resTbOriginTemp;
     }
 
-    public List<TbOrigin> calculateOriginInfo(List<TbOrigin> resList){
+    public List<TbOrigin> calculateOriginInfo(List<TbOrigin> resList) {
+
+        Map<String, TbOrigin> resultMap = resList.stream()
+                .collect(Collectors.toMap(
+                        o -> o.getDate() + "_" + o.getCoin(),
+                        o -> o,
+                        (o1, o2) -> {
+                            o1.setProfit(o1.getProfit() + o2.getProfit());
+                            return o1;
+                        }));
+        List<TbOrigin> mergedObjects = new ArrayList<>(resultMap.values());
+
+
+        Collections.sort(mergedObjects, new Comparator<TbOrigin>() {
+            @Override
+            public int compare(TbOrigin o1, TbOrigin o2) {
+                return Long.compare(Long.parseLong(o1.getDate()), Long.parseLong(o2.getDate()));
+            }
+        });
+
+        logger.info("折线 date {}",mergedObjects.stream().filter(e->e.getProfit() != 0).map(e-> {
+
+            // 格式化日期
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+            return "'" +  sdf.format(Long.parseLong(e.getDate())) + ":" + e.getCoin() + ":" + (e.getDirection().equals("买入")?"空":"多") +"'";
+        }).collect(Collectors.joining(",")));
+
+        AtomicReference<Double> startProfit = new AtomicReference<>(0D);
+        logger.info("折线 数据 {}",mergedObjects.stream().filter(e->e.getProfit() != 0).map(e-> {
+            startProfit.updateAndGet(v -> v + e.getProfit());
+            return String.valueOf(startProfit.get());
+        }).collect(Collectors.joining(",")));
+
+
+
+
         Map<String,List<TbOrigin>> groupByMap = resList
                 .stream()
                 .collect(Collectors
@@ -304,7 +405,27 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
                 res = stringBuilder.toString();
 
             }
-            System.out.println(JSON.toJSONString(hashMap));
+
+            // 将 HashMap 转换为 List
+            List<Map.Entry<String, Double>> list = new LinkedList<>(hashMap.entrySet());
+
+            // 根据值（value）进行排序
+            Collections.sort(list, new Comparator<Map.Entry<String, Double>>() {
+                @Override
+                public int compare(Map.Entry<String, Double> o1, Map.Entry<String, Double> o2) {
+                    return o1.getValue().compareTo(o2.getValue());
+                }
+            });
+
+            // 将排序后的 List 转换为 LinkedHashMap
+            LinkedHashMap<String, Double> sortedMap = new LinkedHashMap<>();
+            for (Map.Entry<String, Double> entry : list) {
+                sortedMap.put(entry.getKey(), entry.getValue());
+            }
+
+
+
+            System.out.println(generatorBingData(JSON.toJSONString(list)));
             logger.info("sort By Coin");
             coinMap.forEach((k,v) -> {
                 logger.info(v);
