@@ -35,7 +35,7 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
     private static final Logger logger = LoggerFactory.getLogger(TradeHistoryServiceImpl.class);
 
 
-    public Result<String> insertFileInfoByMap(InputStream inputStream, String requestId, String market, String fileName) throws Exception {
+    public Result<String> insertFileInfoByMap(InputStream inputStream, String requestId, String market, String fileName, Integer mode) throws Exception {
         List<TbOrigin> parseList = new ArrayList();
         try {
             if  (!fileName.endsWith("xls") && !fileName.endsWith("xlsx") && !fileName.endsWith("csv")) {
@@ -58,7 +58,7 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
                     return Result.failWithMsg("敬请等待支持更多交易所");
             }
             logger.info("parseList {}", parseList);
-            Result<String> dataRes = getTradeDataStr(parseList, market);
+            Result<String> dataRes = getTradeDataStr(parseList, market, mode);
             System.out.println(dataRes.getResult());
 
             if (dataRes.getCode() == -1) {
@@ -246,11 +246,11 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
                         // row.getCell(j).set
                         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-                        tbOrigin.setDate(Long.toString(sdf.parse(row.getCell(j).getStringCellValue()).getTime()));
+                        tbOrigin.setDate(Long.toString((sdf.parse(row.getCell(j).getStringCellValue()).getTime())/1000));
                         break;
                     case 1:
                         // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
-                        tbOrigin.setCoin(row.getCell(j).getStringCellValue());
+                        tbOrigin.setCoin(row.getCell(j).getStringCellValue().replaceAll("USDT", ""));
                         break;
                     case 2:
                         // row.getCell(j).setCellType(Cell.CELL_TYPE_STRING);
@@ -339,7 +339,7 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
     }
 
 
-    public Result<String> getTradeDataStr(List<TbOrigin> tbOrigins, String market) throws Exception {
+    public Result<String> getTradeDataStr(List<TbOrigin> tbOrigins, String market, Integer mode) throws Exception {
         String LongDirection = "多";
         String ShortDirection = "空";
         String res = "";
@@ -389,12 +389,26 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
                 }
 
                 if (coinMap.containsKey(item.getCoin())) {
-                    coinMap.put(item.getCoin(), coinMap.get(item.getCoin()) + String.format("%s:%s.P_%s_%s_%s_%s,", market, item.getCoin(), item.getDate(), text, direction, isOpen));
+                    if (mode.equals(1)){
+                        coinMap.put(item.getCoin(), coinMap.get(item.getCoin()) + String.format("%s_%s_%s_%s_%s,", item.getCoin(), item.getDate(), text, direction, isOpen));
+                    } else {
+                        coinMap.put(item.getCoin(), coinMap.get(item.getCoin()) + String.format("%s_%s_%s_%s,", item.getCoin(), item.getDate(), direction, isOpen));
+                    }
+
                 } else {
-                    coinMap.put(item.getCoin(), String.format("%s:%s.P_%s_%s_%s_%s,", market, item.getCoin(), item.getDate(), text, direction, isOpen));
+                    if (mode.equals(1)){
+                        coinMap.put(item.getCoin(), String.format("%s_%s_%s_%s_%s,",  item.getCoin(), item.getDate(), text, direction, isOpen));
+                    } else {
+                        coinMap.put(item.getCoin(), String.format("%s_%s_%s_%s,", item.getCoin(), item.getDate(), direction, isOpen));
+                    }
+
                 }
 //                coinStr += String.format("%s:%sPERP_%s_%s_%s_%s,\n", market,item.getCoin(), sdf.parse(item.getDate()).getTime(), text, direction, isOpen);
-                res += String.format("%s:%s.P_%s_%s_%s_%s,", market, item.getCoin(), item.getDate(), text, direction, isOpen);
+                if (mode.equals(1)) {
+                    res += String.format("%s_%s_%s_%s_%s,", item.getCoin(), item.getDate(), text, direction, isOpen);
+                } else {
+                    res += String.format("%s_%s_%s_%s,", item.getCoin(), item.getDate(), direction, isOpen);
+                }
             }
 
 
@@ -430,7 +444,8 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
             coinMap.forEach((k,v) -> {
                 logger.info(v);
             });
-            return Result.ok(coinMap.toString());
+
+            return Result.ok(this.splitString(res, 4096).toString());
         } catch (Exception e) {
             logger.error("解析数据发生异常", e);
             e.printStackTrace();
@@ -441,6 +456,14 @@ public class TradeHistoryServiceImpl implements TradeHistoryService {
 
 
 
+    public  String splitString(String originalString, int segmentLength) {
+        String resStr = "";
+        for (int i = 0; i < originalString.length(); i += segmentLength) {
+            int endIndex = Math.min(i + segmentLength, originalString.length());
+            System.out.println(originalString.substring(i, endIndex));
+        }
+        return resStr;
+    }
 
 
 

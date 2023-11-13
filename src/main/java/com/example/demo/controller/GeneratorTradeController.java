@@ -38,7 +38,8 @@ public class GeneratorTradeController {
     @PostMapping("/upload")
     public Result<String> parseFile(HttpServletResponse response
             , @RequestParam(value = "file", required = true) MultipartFile file
-            , @RequestParam(value = "market", required = true) String market) throws Exception {
+            , @RequestParam(value = "market", required = true) String market
+            , @RequestParam(value = "mode", required = true) Integer mode) throws Exception {
         if (file.isEmpty()) {
             return Result.failWithMsg("上传失败，请选择文件");
         }
@@ -60,7 +61,7 @@ public class GeneratorTradeController {
         InputStream fileInputStream = file.getInputStream();
         String fileName = file.getOriginalFilename();
 
-        Result<String> result = tradeHistoryService.insertFileInfoByMap(fileInputStream, requestId,market,fileName);;
+        Result<String> result = tradeHistoryService.insertFileInfoByMap(fileInputStream, requestId,market,fileName, mode);;
 
         // 将文件写入输入流
         // FileInputStream fileInputStream = new FileInputStream(file);

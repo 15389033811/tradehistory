@@ -6,6 +6,6 @@ import java.io.InputStream;
 
 public interface TradeHistoryService {
 
-    Result<String> insertFileInfoByMap(InputStream inputStream, String requestId, String market, String fileName) throws  Exception;
+    Result<String> insertFileInfoByMap(InputStream inputStream, String requestId, String market, String fileName, Integer mode) throws  Exception;
 
 }
